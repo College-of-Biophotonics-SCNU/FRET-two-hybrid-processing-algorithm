@@ -18,14 +18,14 @@ class FRET:
     pbar = {}
 
     def __init__(self,
-                 a: int = 0.177327,
-                 b: int = 0.00997,
-                 c: int = 0.001244,
-                 d: int = 0.791588,
-                 G: int = 7.735335,
-                 k: int = 0.538395,
+                 a: float = 0.177327,
+                 b: float = 0.00997,
+                 c: float = 0.001244,
+                 d: float = 0.791588,
+                 G: float = 7.735335,
+                 k: float = 0.538395,
                  expose_times: tuple = (300, 300, 300),
-                 BACKGROUND_THRESHOLD: int = 1.5,
+                 BACKGROUND_THRESHOLD: float = 1.5,
                  pcolor: bool = False,
                  main_dir: str = ''
                  ):
@@ -231,5 +231,5 @@ class FRET:
 if __name__ == "__main__":
     print("测试流程")
     fret = FRET()
-    fret.start(r"E:\20231125\ctrl")
+    fret.start(r"C:\Users\22806\Downloads\20231204sora10h\20231204sora10hfrethepg2少\ctrl")
     # fret.computer_subdir(r"E:\20231117\20231117hepg2CY\C1Y2", "1")
