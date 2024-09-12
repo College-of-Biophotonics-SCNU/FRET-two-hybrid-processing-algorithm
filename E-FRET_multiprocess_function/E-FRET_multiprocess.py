@@ -25,7 +25,7 @@ class FRET:
                  G: float = 7.735335,
                  k: float = 0.538395,
                  expose_times: tuple = (300, 300, 300),
-                 BACKGROUND_THRESHOLD: float = 1.5,
+                 BACKGROUND_THRESHOLD: float = 1.2,
                  pcolor: bool = False,
                  main_dir: str = ''
                  ):
@@ -92,11 +92,11 @@ class FRET:
         for i in range(3):
             one_channel = original_channels[:, :, i]
             # 统计函数，统计0~2000中存在背景图像最可能的值
-            one_channel = one_channel[one_channel > 0]
-            one_channel = one_channel[one_channel < 2000]
+            one_channel = one_channel[(one_channel > 0) & (one_channel < 2000)]
             bg_hist, bg_bin_edges = np.histogram(one_channel, bins=np.arange(1, 2000, 1))
             # 这里考虑的情况是，背景值的像素一定是最多的
             max_count = max(bg_hist)
+            # 这里需要考虑的是存在直方图统计数量相同的多个不同的像素值
             pixel_list = np.where(bg_hist == max_count)
             # 将图片扣去背景
             background_base[:, :, i] = (original_channels[:, :, i] - background_base[:, :, i]
@@ -230,6 +230,6 @@ class FRET:
 
 if __name__ == "__main__":
     print("测试流程")
-    fret = FRET()
-    fret.start(r"C:\Users\22806\Downloads\20231204sora10h\20231204sora10hfrethepg2少\ctrl")
-    # fret.computer_subdir(r"E:\20231117\20231117hepg2CY\C1Y2", "1")
+    fret = FRET(pcolor=True)
+    # fret.start(r"D:\data\20240716\C-A549-14")
+    fret.computer_subdir(r"C:\Users\22806\Downloads", "0")
