@@ -1,4 +1,5 @@
 import os
+from constant import target_files
 
 
 def get_path(main_dir_path: str):
@@ -26,8 +27,16 @@ def create_file(curr_subdir_path: str):
 
 
 def have_FRET_target_image(curr_subdir_path: str):
-    pass
+    """
+    查看是否存在对应的 三通道荧光图片
+    """
+
+    for name in target_files:
+        if not os.path.exists(os.path.join(curr_subdir_path, name)):
+            return False
+    return True
 
 
 if __name__ == "__main__":
-    pass
+    test_dir = r'C:\Users\22806\Downloads\0'
+    print(have_FRET_target_image(test_dir))
