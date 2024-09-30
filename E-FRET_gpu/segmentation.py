@@ -10,7 +10,7 @@ from skimage.util import img_as_ubyte
 
 
 class SegmentationModel:
-    def __init__(self, root=None, img=None, diameter=200, min_box=100, max_box=250):
+    def __init__(self, root=None, img=None, diameter=200, min_box=100, max_box=400):
         """
         diameter 表示cellpose识别的直径大小
         min_box 表示单细胞大小最小的像素区域大小
@@ -34,22 +34,18 @@ class SegmentationModel:
             image3 = tifffile.imread(os.path.join(sub_folder_path, target_files[2]))
             combined_image = np.stack((image1, image2, image3), axis=-1)
             self.mask_image(combined_image)
-            # 保存图像
-            # 将 16 位图像转换为 8 位
-            mask = img_as_ubyte(self.current_mask)
             # 计算mask中是否存在贴近图像边缘的细胞，将其除去
             # 创建一个与掩码图像相同大小的全零矩阵，用于存储处理后的掩码
-            new_mask = np.zeros_like(mask)
+            new_mask = np.zeros_like(self.current_mask, dtype=np.uint8)
             # 获取图像的高度和宽度
-            height, width = mask.shape
-            cell_sum = np.max(mask)
+            height, width = self.current_mask.shape
+            cell_sum = np.max(self.current_mask)
             cell_index = 1
             # 遍历像素值从高到低
             for value in range(1, cell_sum + 1):
                 # 找到当前像素值的位置
-                indices = np.where(mask == value)
+                indices = np.where(self.current_mask == value)
                 # 检查细胞区域大小是否符合要求,不符合不进行录用操作
-                print("单细胞大小为", len(indices[0]))
                 if len(indices[0]) < self.min_size or len(indices[0]) > self.max_size:
                     continue
                 # 检查每个位置是否在图像内部（不贴近边缘） 图像边框向内切10个像素，
@@ -62,8 +58,8 @@ class SegmentationModel:
                     for y, x in valid_indices:
                         new_mask[y, x] = cell_index
                     cell_index += 1
-            self.current_mask = new_mask
-            io.imsave(os.path.join(sub_folder_path, mask_filename), new_mask)
+            self.current_mask = np.clip(new_mask, 0, 255)
+            io.imsave(os.path.join(sub_folder_path, mask_filename), self.current_mask)
 
     def dataloader(self):
         """
