@@ -1,5 +1,8 @@
 import os
 from constant import target_files
+"""
+文件操作文件类
+"""
 
 
 def get_path(main_dir_path: str):

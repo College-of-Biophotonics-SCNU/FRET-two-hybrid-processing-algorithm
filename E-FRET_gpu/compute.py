@@ -1,5 +1,4 @@
 import os.path
-
 import numpy as np
 import pandas as pd
 import torch
@@ -7,11 +6,10 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import tifffile
-
 from constant import target_files, mask_filename
-
 """
-    注意数据加载顺序是 AA、DD、DA
+FRET 效率计算函数
+注意数据加载顺序是 AA、DD、DA
 """
 
 
@@ -180,4 +178,4 @@ class FRETComputer:
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer('../example/3_C')
+    fret.process_fret_computer('../example/1_A')
