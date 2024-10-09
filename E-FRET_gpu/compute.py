@@ -113,11 +113,11 @@ class FRETComputer:
         # Rc = (self.k * image_AA) / (image_DD + Fc / self.G)
 
         # 保存Ed效率图 保存为 TIFF 文件（可以选择其他格式，如 PNG），并设置保存参数以保留浮点数精度
-        tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze().numpy())
+        tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze(0).numpy())
         # 统计单细胞效率情况
         self.draw_single_cell_Ed_map(Ed, image_mask)
         # 绘制伪彩图
-        self.draw_color_map(Ed.squeeze().numpy(), "Ed")
+        self.draw_color_map(Ed.squeeze(0).numpy(), "Ed")
 
     def draw_single_cell_Ed_map(self, image, mask):
         """
@@ -178,4 +178,4 @@ class FRETComputer:
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer('../example/1_A')
+    fret.process_fret_computer('../example/0_A199')
