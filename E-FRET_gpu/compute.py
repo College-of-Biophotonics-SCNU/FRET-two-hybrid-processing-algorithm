@@ -178,4 +178,4 @@ class FRETComputer:
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer('../example/0_A199')
+    fret.process_fret_computer('../example/1_A')

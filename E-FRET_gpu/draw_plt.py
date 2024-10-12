@@ -37,7 +37,7 @@ def draw_single(image_tensor):
     """
     # 如果图像是灰度图且形状为 (height, width)，添加一个通道维度变为 (height, width, 1)
     if len(image_tensor.shape) == 2:
-        image_tensor = image_tensor.unsqueeze(2)
+        image_tensor = image_tensor.unsqueeze(0)
     if len(image_tensor.shape) == 4:
         image_tensor = image_tensor.squeeze(0)
     # 转为numpy
