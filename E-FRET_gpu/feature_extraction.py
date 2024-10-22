@@ -15,7 +15,8 @@ from skimage.filters import threshold_otsu
 from tranformer import custom_to_float32_tensor
 from draw_plt import draw_compare, draw_single, save_image
 from noise_reduction import median_filter
-from threshold_calculate import threshold_calculate_artificially_defined_with_single_cell_region, threshold_calculate_otsu_with_single_cell_region
+from threshold_calculate import threshold_calculate_artificially_defined_with_single_cell_region, \
+    threshold_calculate_otsu_with_single_cell_region
 
 
 def cell_single_region_contraction(mask_cell_only_tensor, kernel_size=3):
@@ -81,13 +82,10 @@ def count_aggregation_position(ed_image, mask_image, aggregate_image, ed_pandas)
     pass
 
 
-if __name__ == '__main__':
-    experiment = "../example/0_A199/"
-    image_path = os.path.join(experiment + "Ed.tif")
-    mask_path = os.path.join(experiment + "mask_img.png")
-
-    FRET_features_pd = pd.read_csv(os.path.join(experiment + 'cell_Ed_averages.csv'))
-
+def extraction(experiment):
+    image_path = os.path.join(experiment, "Ed.tif")
+    mask_path = os.path.join(experiment, "mask_img.png")
+    FRET_features_pd = pd.read_csv(os.path.join(experiment, 'cell_Ed_averages.csv'))
     # 转换为灰度图像
     image = Image.open(image_path).convert('F')
     mask = Image.open(mask_path).convert('L')
@@ -95,7 +93,6 @@ if __name__ == '__main__':
     transform = transforms.Compose([
         lambda img: custom_to_float32_tensor(img)
     ])
-
 
     # 加载GPU操作
     mask_tensor = transform(mask)
@@ -111,13 +108,47 @@ if __name__ == '__main__':
 
     # 阈值分割聚点情况
     aggregates_img = threshold_calculate_artificially_defined_with_single_cell_region(img_tensor, mask_tensor)
-    save_image(aggregates_img, experiment + "aggregates.tif")
-    draw_single(aggregates_img)
+    save_image(aggregates_img, os.path.join(experiment, "aggregates.tif"))
 
-    # aggregate_path = os.path.join(experiment + "aggregates.tif")
-    # aggregate = Image.open(aggregate_path).convert('L')
-    # aggregate_tensor = transform(aggregate)
     # 特征提取操作
     FRET_features_pd = count_aggregation_efficiency(original_img_tensor, mask_tensor, aggregates_img, FRET_features_pd)
-    FRET_features_pd.to_csv(os.path.join(experiment + 'cell_Ed_averages.csv'), index=False)
+    FRET_features_pd.to_csv(os.path.join(experiment, 'cell_Ed_averages.csv'), index=False)
 
+# if __name__ == '__main__':
+#     experiment = r"D:\data\20240716\A199-A549-14\0"
+#     image_path = os.path.join(experiment, "Ed.tif")
+#     mask_path = os.path.join(experiment, "mask_img.png")
+#
+#     FRET_features_pd = pd.read_csv(os.path.join(experiment, 'cell_Ed_averages.csv'))
+#
+#     # 转换为灰度图像
+#     image = Image.open(image_path).convert('F')
+#     mask = Image.open(mask_path).convert('L')
+#     # 定义转换操作，仅将 PIL 图像转换为 tensor，不进行归一化
+#     transform = transforms.Compose([
+#         lambda img: custom_to_float32_tensor(img)
+#     ])
+#
+#     # 加载GPU操作
+#     mask_tensor = transform(mask)
+#     original_img_tensor = transform(image)
+#
+#     # 增加批次参数，升维，为 1 * 1 * 2048 * 2048
+#     print("加载Ed图像情况", original_img_tensor.shape, original_img_tensor.min(), original_img_tensor.max())
+#     print("加载mask图像的情况", mask_tensor.shape, mask_tensor.min(), mask_tensor.max())
+#
+#     # 中值滤波
+#     img_tensor = median_filter(original_img_tensor, kernel_size=5)
+#     print("降噪后的Ed图像情况", img_tensor.shape, img_tensor.min(), img_tensor.max())
+#
+#     # 阈值分割聚点情况
+#     aggregates_img = threshold_calculate_artificially_defined_with_single_cell_region(img_tensor, mask_tensor)
+#     save_image(aggregates_img, experiment + "aggregates.tif")
+#     # draw_single(aggregates_img)
+#
+#     # aggregate_path = os.path.join(experiment + "aggregates.tif")
+#     # aggregate = Image.open(aggregate_path).convert('L')
+#     # aggregate_tensor = transform(aggregate)
+#     # 特征提取操作
+#     FRET_features_pd = count_aggregation_efficiency(original_img_tensor, mask_tensor, aggregates_img, FRET_features_pd)
+#     FRET_features_pd.to_csv(os.path.join(experiment, 'cell_Ed_averages.csv'), index=False)

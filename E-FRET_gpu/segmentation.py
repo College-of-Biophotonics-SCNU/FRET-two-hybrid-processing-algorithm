@@ -56,6 +56,8 @@ class SegmentationModel:
                 valid_indices = [(y, x) for y, x in zip(indices[0], indices[1]) if
                                  not ((0 <= y <= 10 or height - 10 <= y <= height - 1) or
                                       (0 <= x <= 10 or width - 10 <= y <= width - 1))]
+                # 如果细胞边框在四边的值x值或者y值相等的情况，也不进行录用 TODO
+
                 # 如果有有效的位置，将当前像素值分配给它们
                 if valid_indices:
                     for y, x in valid_indices:
@@ -105,6 +107,6 @@ class SegmentationModel:
 
 
 if __name__ == "__main__":
-    segmentationModel = SegmentationModel(root='../example')
+    segmentationModel = SegmentationModel(root=r'D:\data\20240716\A199-A549-14')
     segmentationModel.start()
-    segmentationModel.show_mask_image()
+    # segmentationModel.show_mask_image()

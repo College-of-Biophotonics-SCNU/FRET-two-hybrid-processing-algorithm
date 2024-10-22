@@ -11,7 +11,7 @@ def get_path(main_dir_path: str):
     :param main_dir_path: 待处理文件夹路径
     :return: 文件列表，文件数量
     """
-    subdir = os.listdir(main_dir_path)
+    subdir = [f for f in os.listdir(main_dir_path) if os.path.isdir(os.path.join(main_dir_path, f))]
     length = len(subdir)
     return subdir, length
 

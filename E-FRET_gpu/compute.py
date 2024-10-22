@@ -151,6 +151,8 @@ class FRETComputer:
         plt.imshow(image_np, cmap=cmap, vmin=0, vmax=1)
         plt.colorbar()
         plt.savefig(os.path.join(self.current_sub_path, hist_name + "wei.jpg"))
+        # 清除所有plt的参数
+        plt.clf()
 
     def subtract_background_noise(self, image, mask):
         """
@@ -178,4 +180,4 @@ class FRETComputer:
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer('../example/1_A')
+    fret.process_fret_computer(r'D:\data\20240716\A199-A549-4\9')
