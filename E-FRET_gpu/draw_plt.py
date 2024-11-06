@@ -48,12 +48,12 @@ def draw_single(image_tensor):
     plt.show()
 
 
-def save_image(image_tensor, image_path):
+def save_image(image_tensor, image_path, mode="F"):
     """
     保存为图像
     """
     if len(image_tensor.shape) == 4:
         image_tensor = image_tensor.squeeze(0).squeeze(0)
-    img = Image.fromarray(image_tensor.numpy(), mode='F')
+    img = Image.fromarray(image_tensor.numpy(), mode=mode)
     img.save(image_path)
 

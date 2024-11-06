@@ -9,7 +9,7 @@ import pandas as pd
 
 from file_operation import get_path
 
-root = r"D:\data\20240716\C-A549-14"
+root = r"D:\data\20240716\A-A549-2"
 merged_df = pd.DataFrame()
 # 遍历一遍子文件列表
 sub_dirs, _ = get_path(root)

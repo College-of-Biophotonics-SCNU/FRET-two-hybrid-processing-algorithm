@@ -11,11 +11,10 @@ import torchvision.transforms as transforms
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from skimage.filters import threshold_otsu
 from tranformer import custom_to_float32_tensor
 from draw_plt import draw_compare, draw_single, save_image
 from noise_reduction import median_filter
-from threshold_calculate import threshold_calculate_artificially_defined_with_single_cell_region, \
+from aggregates_segmentation import threshold_calculate_artificially_defined_with_single_cell_region, \
     threshold_calculate_otsu_with_single_cell_region
 
 
@@ -38,6 +37,13 @@ def cell_single_region_contraction(mask_cell_only_tensor, kernel_size=3):
                               torch.tensor(1, dtype=torch.float32),
                               torch.tensor(0, dtype=torch.float32))
     return result_mask
+
+
+def count_mit_efficiency(ed_image_tensor, mask_image_tensor, mit_image_tensor, ed_pandas):
+    """
+    提取线粒体的效率
+    """
+    pass
 
 
 def count_aggregation_efficiency(ed_image, mask_image, aggregate_image, ed_pandas):

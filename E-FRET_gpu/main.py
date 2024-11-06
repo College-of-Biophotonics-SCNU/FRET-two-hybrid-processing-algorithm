@@ -8,11 +8,11 @@ from constant import target_files
 from compute import FRETComputer
 from segmentation import SegmentationModel
 from feature_extraction import extraction
-root = r"D:\data\20240716\C-A549-2"
+root = r"D:\data\20240716\A-A549-2"
 
 # 分割操作
-segmentationModel = SegmentationModel(root=root)
-segmentationModel.start()
+# segmentationModel = SegmentationModel(root=root)
+# segmentationModel.start()
 
 
 # 遍历一遍子文件列表

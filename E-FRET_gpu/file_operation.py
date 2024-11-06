@@ -33,7 +33,6 @@ def have_FRET_target_image(curr_subdir_path: str):
     """
     查看是否存在对应的 三通道荧光图片
     """
-
     for name in target_files:
         if not os.path.exists(os.path.join(curr_subdir_path, name)):
             return False

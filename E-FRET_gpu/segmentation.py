@@ -13,7 +13,7 @@ cellpose 单细胞分割函数
 
 
 class SegmentationModel:
-    def __init__(self, root=None, img=None, diameter=200, min_box=100, max_box=400):
+    def __init__(self, root=None, img=None, diameter=200, min_box=150, max_box=400):
         """
         diameter 表示cellpose识别的直径大小
         min_box 表示单细胞大小最小的像素区域大小

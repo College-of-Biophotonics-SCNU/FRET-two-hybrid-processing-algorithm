@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
+from draw_plt import draw_single
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import tifffile
@@ -99,27 +100,32 @@ class FRETComputer:
         # image_mask 存在单细胞信息值 需要只包含0和1位置信息情况
         mask = image_mask.clone()
         mask[mask > 0] = 1
-
         # 计算背景噪声 并且FRET三通道减去对应的背景噪声 添加 mask 屏蔽
-        image_AA = self.subtract_background_noise(image_AA, mask) / self.expose_times[0]
-        image_DD = self.subtract_background_noise(image_DD, mask) / self.expose_times[1]
-        image_DA = self.subtract_background_noise(image_DA, mask) / self.expose_times[2]
+        image_AA = self.subtract_background_noise(image_AA, mask)
+        image_DD = self.subtract_background_noise(image_DD, mask)
+        image_DA = self.subtract_background_noise(image_DA, mask)
+        # 添加三通道有效模板 小心负负得正的情况
+        effective_template = image_AA * image_DA * image_DD
+        effective_template[effective_template > 0] = 1
+        # 三通道值全部必须为正
+        image_AA = image_AA * effective_template
+        image_DD = image_DD * effective_template
+        image_DA = image_DA * effective_template
         # 计算 Fc 图像
         Fc = image_DA - self.a * (image_AA - self.c * image_DD) - self.d * (image_DD - self.b * image_AA)
         Fc[Fc < 0] = 0
-
+        print(sub_path, " this set FRET images 有效Fc最小值为", Fc[Fc > 0].min())
         # 计算 Ed 效率以及 Rc 浓度值 并添加掩码屏蔽无用信息
-        Ed = (Fc / (Fc + self.G * image_DD)) * mask
+        Ed = Fc / (Fc + self.G * image_DD + 1e-5)
         # Rc = (self.k * image_AA) / (image_DD + Fc / self.G)
-
         # 保存Ed效率图 保存为 TIFF 文件（可以选择其他格式，如 PNG），并设置保存参数以保留浮点数精度
         tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze(0).numpy())
         # 统计单细胞效率情况
-        self.draw_single_cell_Ed_map(Ed, image_mask)
+        self.count_single_cell_Ed(Ed, image_mask)
         # 绘制伪彩图
         self.draw_color_map(Ed.squeeze(0).numpy(), "Ed")
 
-    def draw_single_cell_Ed_map(self, image, mask):
+    def count_single_cell_Ed(self, image, mask):
         """
         1. 计算单细胞的 Ed 效率值，并统计所有的效率分布情况
         """
@@ -147,37 +153,50 @@ class FRETComputer:
         # 创建自定义颜色映射
         cmap = LinearSegmentedColormap.from_list('custom_cmap', [(0, 'blue'), (0.5, 'cyan'), (1, 'yellow')])
         # 使用 imshow 绘制伪彩图
-        print(self.current_sub_path, " this set FRET images 最大值 ", hist_name, " 为 ", np.max(image_np))
+        print(self.current_sub_path, " this set FRET images 最大值 ",
+              hist_name, " 为 ", np.max(image_np), "最小值 ",
+              hist_name, " 为 ", np.min(image_np))
         plt.imshow(image_np, cmap=cmap, vmin=0, vmax=1)
         plt.colorbar()
         plt.savefig(os.path.join(self.current_sub_path, hist_name + "wei.jpg"))
         # 清除所有plt的参数
         plt.clf()
 
-    def subtract_background_noise(self, image, mask):
+    def subtract_background_noise(self, image, mask, only_background=True, background_threshold=1.5):
         """
         1. 利用直方图统计法 计算出对应的背景噪声 同时将图像减去背景噪声
         2. 掩码对应的图像
         """
-        # 反转 mask
-        inverted_mask_tensor = 1 - mask
-        # 用反转后的掩码与 AA 图像相乘得到背景区域
-        background_tensor = image * inverted_mask_tensor
-        # 将背景tensor转换为一维数组以便进行直方图统计
-        background_flat = background_tensor.squeeze().flatten().numpy()
+        background_flat = image.squeeze().flatten().numpy()
+        if only_background:
+            # 反转 mask
+            inverted_mask_tensor = 1 - mask
+            # 用反转后的掩码与 AA 图像相乘得到背景区域
+            background_tensor = image * inverted_mask_tensor
+            # 将背景tensor转换为一维数组以便进行直方图统计
+            background_flat = background_tensor.squeeze().flatten().numpy()
         # 统计直方图
-        hist, bin_edges = np.histogram(background_flat, bins=np.arange(0, 2001, 1))
+        hist, bin_edges = np.histogram(background_flat, bins=np.arange(1, 2001, 1))
         # 找到频率最高像素值对应的索引
         most_frequent_index = np.argmax(hist)
-        # 获取频率最高的像素值作为背景噪声
-        background_noise = bin_edges[most_frequent_index]
-        print(self.current_sub_path, " 图像的最大值为", image.max(), " 图像最小值为", image.min(), " 图像的背景阈值为", background_noise)
-        # 将 AA 图像减去背景噪声
-        noise_removed_tensor = image - background_noise
+        # 获取频率最高像素值作为背景噪声
+        background_noise = bin_edges[most_frequent_index] * background_threshold
+        print(self.current_sub_path,
+              " 图像的最大值为", image.max(),
+              " 图像最小值为", image.min(),
+              " 图像的背景阈值为", background_noise)
+        # 将 AA 图像减去背景噪声 掩码屏蔽
+        noise_removed_tensor = (image - background_noise) * mask
+        noise_removed_tensor[noise_removed_tensor < 0] = 0
+        # 除以曝光时间
+        noise_removed_tensor = noise_removed_tensor / self.expose_times[0]
+        print(self.current_sub_path,
+              " 降噪图像的最大值为", noise_removed_tensor.max(),
+              " 降噪图像最小值为", noise_removed_tensor[noise_removed_tensor > 0].min())
         # 返回降噪结果
         return noise_removed_tensor
 
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer(r'D:\data\20240716\A199-A549-4\9')
+    fret.process_fret_computer(r'D:\data\20240716\A-A549-4\4')
