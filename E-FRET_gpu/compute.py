@@ -104,7 +104,7 @@ class FRETComputer:
         image_AA = self.subtract_background_noise(image_AA, mask)
         image_DD = self.subtract_background_noise(image_DD, mask)
         image_DA = self.subtract_background_noise(image_DA, mask)
-        # 添加三通道有效模板 小心负负得正的情况
+        # 添加三通道有效模板
         effective_template = image_AA * image_DA * image_DD
         effective_template[effective_template > 0] = 1
         # 三通道值全部必须为正
@@ -115,8 +115,8 @@ class FRETComputer:
         Fc = image_DA - self.a * (image_AA - self.c * image_DD) - self.d * (image_DD - self.b * image_AA)
         Fc[Fc < 0] = 0
         print(sub_path, " this set FRET images 有效Fc最小值为", Fc[Fc > 0].min())
-        # 计算 Ed 效率以及 Rc 浓度值 并添加掩码屏蔽无用信息
-        Ed = Fc / (Fc + self.G * image_DD + 1e-5)
+        # 计算 Ed 效率以及 Rc 浓度值
+        Ed = Fc / (Fc + self.G * image_DD + 1e-7)
         # Rc = (self.k * image_AA) / (image_DD + Fc / self.G)
         # 保存Ed效率图 保存为 TIFF 文件（可以选择其他格式，如 PNG），并设置保存参数以保留浮点数精度
         tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze(0).numpy())
@@ -162,7 +162,7 @@ class FRETComputer:
         # 清除所有plt的参数
         plt.clf()
 
-    def subtract_background_noise(self, image, mask, only_background=True, background_threshold=1.5):
+    def subtract_background_noise(self, image, mask, only_background=True, background_threshold=1.2):
         """
         1. 利用直方图统计法 计算出对应的背景噪声 同时将图像减去背景噪声
         2. 掩码对应的图像
