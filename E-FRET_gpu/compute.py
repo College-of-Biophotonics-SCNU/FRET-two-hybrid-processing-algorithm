@@ -65,9 +65,9 @@ class FRETComputer:
         self.expose_times = expose_times
         self.BACKGROUND_THRESHOLD = BACKGROUND_THRESHOLD
         self.is_pcolor = is_pcolor
-        self.subdir_list = []  # 子目录列表
-        self.subdir_len = 0  # 子目录长度
-        self.current_sub_path = ''      # 当前处理的子文件夹
+        self.subdir_list = []                       # 子目录列表
+        self.subdir_len = 0                         # 子目录长度
+        self.current_sub_path = ''                  # 当前处理的子文件夹
         self.main_dir = main_dir
         self.gpu = gpu
         self.batch_size = batch_size
@@ -101,22 +101,17 @@ class FRETComputer:
         mask = image_mask.clone()
         mask[mask > 0] = 1
         # 计算背景噪声 并且FRET三通道减去对应的背景噪声 添加 mask 屏蔽
-        image_AA = self.subtract_background_noise(image_AA, mask)
-        image_DD = self.subtract_background_noise(image_DD, mask)
-        image_DA = self.subtract_background_noise(image_DA, mask)
-        # 添加三通道有效模板
-        effective_template = image_AA * image_DA * image_DD
-        effective_template[effective_template > 0] = 1
-        # 三通道值全部必须为正
-        image_AA = image_AA * effective_template
-        image_DD = image_DD * effective_template
-        image_DA = image_DA * effective_template
+        image_AA, image_AA_template = self.subtract_background_noise(image_AA, mask)
+        image_DD, image_DD_template = self.subtract_background_noise(image_DD, mask)
+        image_DA, image_DA_template = self.subtract_background_noise(image_DA, mask)
+        # 添加三通道有效模板 三通道值全部必须为正
+        effective_template = image_AA_template * image_DD_template * image_DA_template * mask
         # 计算 Fc 图像
         Fc = image_DA - self.a * (image_AA - self.c * image_DD) - self.d * (image_DD - self.b * image_AA)
         Fc[Fc < 0] = 0
         print(sub_path, " this set FRET images 有效Fc最小值为", Fc[Fc > 0].min())
         # 计算 Ed 效率以及 Rc 浓度值
-        Ed = Fc / (Fc + self.G * image_DD + 1e-7)
+        Ed = Fc / (Fc + self.G * image_DD + 1e-7) * effective_template
         # Rc = (self.k * image_AA) / (image_DD + Fc / self.G)
         # 保存Ed效率图 保存为 TIFF 文件（可以选择其他格式，如 PNG），并设置保存参数以保留浮点数精度
         tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze(0).numpy())
@@ -184,19 +179,24 @@ class FRETComputer:
         print(self.current_sub_path,
               " 图像的最大值为", image.max(),
               " 图像最小值为", image.min(),
-              " 图像的背景阈值为", background_noise)
+              " 图像的背景阈值为", bin_edges[most_frequent_index])
         # 将 AA 图像减去背景噪声 掩码屏蔽
-        noise_removed_tensor = (image - background_noise) * mask
+        noise_removed_tensor = image - bin_edges[most_frequent_index]
         noise_removed_tensor[noise_removed_tensor < 0] = 0
+        noise_removed_tensor[noise_removed_tensor > 50000] = 0
+        # 计算该图像的有效区域的模板
+        template_tensor = image - background_noise
+        template_tensor[template_tensor > 0] = 1
+        template_tensor[template_tensor <= 0] = 0
         # 除以曝光时间
         noise_removed_tensor = noise_removed_tensor / self.expose_times[0]
         print(self.current_sub_path,
               " 降噪图像的最大值为", noise_removed_tensor.max(),
               " 降噪图像最小值为", noise_removed_tensor[noise_removed_tensor > 0].min())
         # 返回降噪结果
-        return noise_removed_tensor
+        return noise_removed_tensor, template_tensor
 
 
 if __name__ == "__main__":
     fret = FRETComputer()
-    fret.process_fret_computer(r'D:\data\20240716\A-A549-4\4')
+    fret.process_fret_computer(r'../example/3_C')
