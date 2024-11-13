@@ -1,6 +1,8 @@
 import torch
 """
 tensor 加载转换工具类
+1. 转为 int 8 位函数
+2. 转为 float 32 位函数
 """
 
 

@@ -4,12 +4,12 @@
 2. 利用 AA 通道或者线粒体染色通道分割线粒体区域
 3. 利用该区域进行特征提取
 """
-from PIL import Image
-from tranformer import custom_to_float32_tensor
-from skimage.filters import threshold_otsu
-from draw_plt import draw_single, save_image
 import torch
 import torchvision.transforms as transforms
+from PIL import Image
+from E_FRET_gpu.image.tranformer import custom_to_float32_tensor
+from skimage.filters import threshold_otsu
+from E_FRET_gpu.tool.draw_plt import draw_single, save_image
 
 
 def mit_segmentation_ostu(mit_image, mask_image, threshold_weight=1):
@@ -38,7 +38,7 @@ def save_mit_segmentation_image(mit_image_tensor, image_set_path):
 
 
 if __name__ == '__main__':
-    dir_path = '../example/1_A'
+    dir_path = '../../example/1_A'
     mit_image_path = dir_path + '/AA.tif'
     mask_image_path = dir_path + '/mask_img.png'
 

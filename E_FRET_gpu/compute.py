@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
-from draw_plt import draw_single
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import tifffile

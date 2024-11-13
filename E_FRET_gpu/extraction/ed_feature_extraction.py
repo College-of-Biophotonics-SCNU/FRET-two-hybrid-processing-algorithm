@@ -11,11 +11,10 @@ import torchvision.transforms as transforms
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from tranformer import custom_to_float32_tensor
-from draw_plt import draw_compare, draw_single, save_image
-from noise_reduction import median_filter
-from aggregates_segmentation import threshold_calculate_artificially_defined_with_single_cell_region, \
-    threshold_calculate_otsu_with_single_cell_region
+from E_FRET_gpu.image.tranformer import custom_to_float32_tensor
+from E_FRET_gpu.tool.draw_plt import draw_compare, draw_single, save_image
+from E_FRET_gpu.image.noise_reduction import median_filter
+from E_FRET_gpu.segmentation.aggregates_segmentation import threshold_calculate_artificially_defined_with_single_cell_region
 
 
 def cell_single_region_contraction(mask_cell_only_tensor, kernel_size=3):
