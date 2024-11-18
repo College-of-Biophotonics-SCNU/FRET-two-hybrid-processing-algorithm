@@ -70,6 +70,8 @@ class SegmentationModel:
             self.current_mask = new_mask
             io.imsave(str(os.path.join(sub_folder_path, mask_filename)), self.current_mask.astype(np.uint8))
 
+        self.remove_subdir_path()
+
     def dataloader(self):
         """
         遍历文件下的每个路径，主要是获取 AA、DA、DD 通道数据
@@ -82,6 +84,8 @@ class SegmentationModel:
                     if os.path.exists(str(os.path.join(sub_folder_path, target_file))):
                         self.matching_sub_folder_paths.append(sub_folder_path)
                         break
+        print("总共找到符合要求的文件共 ", len(self.matching_sub_folder_paths))
+
 
     def gaussian(self):
         """
@@ -109,6 +113,8 @@ class SegmentationModel:
         ax2.set_title('Segmented Masks')
         plt.show()
 
+    def remove_subdir_path(self):
+        self.matching_sub_folder_paths.clear()
 
 if __name__ == "__main__":
     segmentationModel = SegmentationModel(root=r'../example')
