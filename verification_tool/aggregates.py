@@ -121,8 +121,8 @@ def save_image(output_path, image):
 
 
 # 示例调用
-image_path = '../example/1_A/Ed.tif'
-mask_path = '../example/1_A/mask_img.png'
+image_path = '../example/normal/1_A/Ed.tif'
+mask_path = '../example/normal/1_A/mask_img.png'
 output_path = 'output/output_image.png'
 
 main(image_path, mask_path, output_path)

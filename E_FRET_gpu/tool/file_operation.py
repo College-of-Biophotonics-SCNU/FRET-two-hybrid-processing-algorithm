@@ -1,5 +1,6 @@
 import os
-from constant import target_files
+
+from E_FRET_gpu.constant import target_files
 """
 文件操作文件类
 """

@@ -2,8 +2,8 @@ import numpy as np
 from PIL import Image
 from matplotlib import pyplot as plt
 
-image_path = "../example/1_A/Ed.tif"
-mask_path = "../example/1_A/mask_img.png"
+image_path = "../example/normal/1_A/Ed.tif"
+mask_path = "../example/normal/1_A/mask_img.png"
 aggregate = "../example/1_A/aggregates.tif"
 # 将聚点和灰度图合并
 # 读取图像

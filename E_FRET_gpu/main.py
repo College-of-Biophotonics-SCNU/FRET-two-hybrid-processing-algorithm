@@ -5,8 +5,8 @@ import os.path
 
 from tool.file_operation import get_path
 from segmentation.cell_segmentation import SegmentationModel
-from tool.update_tif_name import chang_BF_name
-root = r"D:\data\20240730"
+from tool.update_tif_name import chang_BF_name, check_file_integrity
+root = r"D:\data\20240716"
 
 
 """
@@ -23,7 +23,7 @@ segmentationModel = SegmentationModel()
 for well_sub_dir in well_sub_dirs:
      # 修改 BF 明场图像名称
      sub_dir_path = os.path.join(root, well_sub_dir)
-     chang_BF_name(sub_dir_path)
+     # check_file_integrity(sub_dir_path)
      # 实现单细胞分割功能
      segmentationModel.root = sub_dir_path
      segmentationModel.start()

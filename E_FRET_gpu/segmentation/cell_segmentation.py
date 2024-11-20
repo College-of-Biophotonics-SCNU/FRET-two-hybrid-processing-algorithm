@@ -16,7 +16,10 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*is a low cont
 warnings.filterwarnings("ignore", category=FutureWarning, message=".*You are using `torch.load`.*")
 
 class SegmentationModel:
-    def __init__(self, root=None, img=None, diameter=200, min_box=100, max_box=400):
+    """
+    使用 cellpose CNN 网络分割细胞区域
+    """
+    def __init__(self, root=None, img=None, diameter=60, min_box=40, max_box=200):
         """
         diameter 表示cellpose识别的直径大小
         min_box 表示单细胞大小最小的像素区域大小
@@ -38,8 +41,21 @@ class SegmentationModel:
             image1 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[0])))
             image2 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[1])))
             image3 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[2])))
-            combined_image = np.stack((image1, image2, image3), axis=-1)
+
+            mit_image_path = str(os.path.join(sub_folder_path, 'mit.tif'))
+            if os.path.exists(mit_image_path):
+                mit_image = tifffile.imread(mit_image_path)
+                combined_image = np.stack((image1, image2, image3, mit_image), axis=-1)
+            else:
+                combined_image = np.stack((image1, image2, image3), axis=-1)
             self.mask_image(combined_image)
+
+
+            # 使用线粒体分割操作
+            # mit_image = tifffile.imread(str(os.path.join(sub_folder_path, 'mit.tif')))
+            # mit_np = np.array(mit_image)
+            # self.mask_image(mit_np)
+
             # 计算mask中是否存在贴近图像边缘的细胞，将其除去
             # 创建一个与掩码图像相同大小的全零矩阵，用于存储处理后的掩码
             new_mask = np.zeros_like(self.current_mask, dtype=np.uint8)
@@ -62,8 +78,8 @@ class SegmentationModel:
                                           (0 <= x <= 30 or width - 30 <= y <= width - 1))]
                     # 如果细胞边框在四边的值x值或者y值相等的情况，也不进行录用 TODO
 
-                    # 如果有有效的位置，将当前像素值分配给它们 贴近边缘的像素点小于600就进行采用
-                    if len(indices[0]) - len(valid_indices) <= 600 :
+                    # 如果有有效的位置，将当前像素值分配给它们 贴近边缘的像素点小于300就进行采用
+                    if len(indices[0]) - len(valid_indices) <= 300 :
                         for x, y in valid_indices:
                             new_mask[x, y] = cell_index
                         cell_index += 1
@@ -117,6 +133,6 @@ class SegmentationModel:
         self.matching_sub_folder_paths.clear()
 
 if __name__ == "__main__":
-    segmentationModel = SegmentationModel(root=r'../example')
+    segmentationModel = SegmentationModel(root=r'C:\Code\python\FRET-two-hybrid-processing-algorithm\example\mit')
     segmentationModel.start()
     # segmentationModel.show_mask_image()
