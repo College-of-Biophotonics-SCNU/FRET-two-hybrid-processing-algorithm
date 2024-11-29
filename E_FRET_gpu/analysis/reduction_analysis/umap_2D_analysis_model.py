@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 warnings.filterwarnings("ignore", category=UserWarning, module="umap.umap_")
 
 # 读取CSV文件
-file_path = r'/data/csv/20240803_MCF7_BF.csv'
+file_path = r'../../../data/csv/20240803_MCF7_BF.csv'
 df = pd.read_csv(file_path)
 
 # 提取特征和标签
