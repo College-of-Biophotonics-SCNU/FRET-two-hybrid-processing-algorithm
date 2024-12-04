@@ -1,9 +1,3 @@
-"""
-线粒体分割
-1. 由于 bax 和 bcl 聚集在线粒体上
-2. 利用 AA 通道或者线粒体染色通道分割线粒体区域
-3. 利用该区域进行特征提取
-"""
 import cv2
 import numpy as np
 import torch
@@ -12,7 +6,12 @@ from scipy import ndimage
 from skimage import measure, segmentation, morphology
 from skimage.filters import threshold_otsu
 from E_FRET_gpu.tool.draw_plt import draw_single, save_image
-
+"""
+线粒体分割
+1. 由于 bax 和 bcl 聚集在线粒体上
+2. 利用 AA 通道或者线粒体染色通道分割线粒体区域
+3. 利用该区域进行特征提取
+"""
 def mit_segmentation_ostu_single_cell(mit_image_tensor, mask_image_tensor, threshold_weight=1):
     """
     利用大津阈值法按照单细胞区域分割线粒体图像区域

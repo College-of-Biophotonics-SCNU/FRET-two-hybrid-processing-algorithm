@@ -19,7 +19,7 @@ class SegmentationModel:
     """
     使用 cellpose CNN 网络分割细胞区域
     """
-    def __init__(self, root=None, img=None, diameter=60, min_box=40, max_box=200):
+    def __init__(self, root=None, img=None, diameter=200, min_box=150, max_box=400):
         """
         diameter 表示cellpose识别的直径大小
         min_box 表示单细胞大小最小的像素区域大小
@@ -34,59 +34,67 @@ class SegmentationModel:
         self.min_size = min_box * min_box
         self.max_size = max_box * max_box
 
-    def start(self):
+    def start(self, add_seg_channel=None):
         self.dataloader()
         for sub_folder_path in self.matching_sub_folder_paths:
             print("处理 ===> ", sub_folder_path)
-            image1 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[0])))
-            image2 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[1])))
-            image3 = tifffile.imread(str(os.path.join(sub_folder_path, target_files[2])))
-
-            mit_image_path = str(os.path.join(sub_folder_path, 'mit.tif'))
-            if os.path.exists(mit_image_path):
-                mit_image = tifffile.imread(mit_image_path)
-                combined_image = np.stack((image1, image2, image3, mit_image), axis=-1)
-            else:
-                combined_image = np.stack((image1, image2, image3), axis=-1)
-            self.mask_image(combined_image)
-
-
-            # 使用线粒体分割操作
-            # mit_image = tifffile.imread(str(os.path.join(sub_folder_path, 'mit.tif')))
-            # mit_np = np.array(mit_image)
-            # self.mask_image(mit_np)
-
-            # 计算mask中是否存在贴近图像边缘的细胞，将其除去
-            # 创建一个与掩码图像相同大小的全零矩阵，用于存储处理后的掩码
-            new_mask = np.zeros_like(self.current_mask, dtype=np.uint8)
-            # 获取图像的高度和宽度
-            height, width = self.current_mask.shape
-            cell_sum = np.max(self.current_mask)
-            cell_index = 1
-            # 遍历像素值从高到低
-            if cell_sum >= 1:
-                for value in range(1, cell_sum + 1):
-                    # 找到当前像素值的位置
-                    indices = np.where(self.current_mask == value)
-                    # 检查细胞区域大小是否符合要求,不符合不进行录用操作
-                    if len(indices[0]) < self.min_size or len(indices[0]) > self.max_size:
-                        continue
-                    # 检查每个位置是否在图像内部（不贴近边缘） 图像边框向内切 30 个像素，
-                    # 如果细胞在边缘条上的话，不进行记录操作
-                    valid_indices = [(y, x) for y, x in zip(indices[0], indices[1]) if
-                                     not ((0 <= y <= 30 or height - 30 <= y <= height - 1) or
-                                          (0 <= x <= 30 or width - 30 <= y <= width - 1))]
-                    # 如果细胞边框在四边的值x值或者y值相等的情况，也不进行录用 TODO
-
-                    # 如果有有效的位置，将当前像素值分配给它们 贴近边缘的像素点小于300就进行采用
-                    if len(indices[0]) - len(valid_indices) <= 300 :
-                        for x, y in valid_indices:
-                            new_mask[x, y] = cell_index
-                        cell_index += 1
-            self.current_mask = new_mask
-            io.imsave(str(os.path.join(sub_folder_path, mask_filename)), self.current_mask.astype(np.uint8))
+            self.process(sub_folder_path, add_seg_channel)
 
         self.remove_subdir_path()
+
+    def process(self, current_image_set_path, add_seg_channel=None):
+        """
+        开始处理计算由多通道组合计算的细胞分割流程
+        :param current_image_set_path: 当前处理的最小文件夹单位
+        :param add_seg_channel: 除了DD、DA、AA三通道还需要添加的分割通道
+        """
+        image1 = tifffile.imread(str(os.path.join(current_image_set_path, target_files[0])))
+        image2 = tifffile.imread(str(os.path.join(current_image_set_path, target_files[1])))
+        image3 = tifffile.imread(str(os.path.join(current_image_set_path, target_files[2])))
+        combined_image = np.stack((image1, image2, image3), axis=-1)
+        # 查看是否存在需要添加的分割通道文件。一般是mit线粒体或者内质网等亚细胞器染色文件
+        if add_seg_channel is not None:
+            for seg_channel in add_seg_channel:
+                image4_path = str(os.path.join(current_image_set_path, seg_channel + '.tif'))
+                if os.path.exists(image4_path):
+                    image4 = tifffile.imread(image4_path)
+                else:
+                    continue
+                # 扩展 image4 以匹配 combined_image 的维度
+                image4_expanded = np.expand_dims(image4, axis=-1)
+                # 沿着最后一个轴（通常是颜色通道）连接
+                combined_image = np.concatenate((combined_image, image4_expanded), axis=-1)
+
+        self.mask_image(combined_image)
+
+        # 计算mask中是否存在贴近图像边缘的细胞，将其除去，创建一个与掩码图像相同大小的全零矩阵，用于存储处理后的掩码
+        new_mask = np.zeros_like(self.current_mask, dtype=np.uint8)
+        # 获取图像的高度和宽度
+        height, width = self.current_mask.shape
+        cell_sum = np.max(self.current_mask)
+        cell_index = 1
+        # 遍历像素值从高到低
+        if cell_sum >= 1:
+            for value in range(1, cell_sum + 1):
+                # 找到当前像素值的位置
+                indices = np.where(self.current_mask == value)
+                # 检查细胞区域大小是否符合要求,不符合不进行录用操作
+                if len(indices[0]) < self.min_size or len(indices[0]) > self.max_size:
+                    continue
+                # 检查每个位置是否在图像内部（不贴近边缘） 图像边框向内切 30 个像素，
+                # 如果细胞在边缘条上的话，不进行记录操作
+                valid_indices = [(y, x) for y, x in zip(indices[0], indices[1]) if
+                                 not ((0 <= y <= 30 or height - 30 <= y <= height - 1) or
+                                      (0 <= x <= 30 or width - 30 <= y <= width - 1))]
+                # 如果细胞边框在四边的值x值或者y值相等的情况，也不进行录用 TODO
+
+                # 如果有有效的位置，将当前像素值分配给它们 贴近边缘的像素点小于300就进行采用
+                if len(indices[0]) - len(valid_indices) <= 300:
+                    for x, y in valid_indices:
+                        new_mask[x, y] = cell_index
+                    cell_index += 1
+        self.current_mask = new_mask
+        io.imsave(str(os.path.join(current_image_set_path, mask_filename)), self.current_mask.astype(np.uint8))
 
     def dataloader(self):
         """
@@ -133,6 +141,6 @@ class SegmentationModel:
         self.matching_sub_folder_paths.clear()
 
 if __name__ == "__main__":
-    segmentationModel = SegmentationModel(root=r'C:\Code\python\FRET-two-hybrid-processing-algorithm\example\mit')
-    segmentationModel.start()
-    # segmentationModel.show_mask_image()
+    segmentationModel = SegmentationModel()
+    segmentationModel.process('../../example/egfr/control-3')
+    segmentationModel.show_mask_image()

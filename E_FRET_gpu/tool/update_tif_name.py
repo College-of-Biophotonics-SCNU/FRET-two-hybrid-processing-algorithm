@@ -17,6 +17,8 @@ def chang_BF_name(root_directory):
             new_names = ["BF_1.tif", "BF_2.tif", "BF_3.tif"]
             for old_name, new_name in zip(image_files, new_names):
                 os.rename(os.path.join(root, old_name), os.path.join(root, new_name))
+        if len(image_files) == 1:
+            os.rename(os.path.join(root, image_files[0]), os.path.join(root, "BF_1.tif"))
 
 
 def check_file_integrity(root_directory):

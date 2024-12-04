@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from tqdm import tqdm
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
+"""
+原始的基于cpu的FRET效率计算算法
+"""
 
 class Fret:
     """

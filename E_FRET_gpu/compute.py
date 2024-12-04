@@ -6,7 +6,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from tifffile import tifffile
-from constant import target_files, mask_filename
+from E_FRET_gpu.constant import target_files, mask_filename
 """
 FRET 效率计算函数
 注意数据加载顺序是 AA、DD、DA
@@ -16,9 +16,10 @@ FRET 效率计算函数
 def load_image_to_tensor(image_path):
     """
     加载图像到 GPU 上
+    期望输入图像为 二维图像
     """
     img = Image.open(image_path)
-    return torch.from_numpy(np.array(img)).unsqueeze(0).float()
+    return torch.from_numpy(np.array(img)).float()
 
 
 class FRETComputer:
@@ -50,7 +51,7 @@ class FRETComputer:
         :param k: 校正因子k
         :param BACKGROUND_THRESHOLD: 背景模板波长阈值超参数
         :param expose_times: 三通道曝光时间
-        :param pcolor: 是否开启伪彩图显示
+        :param is_pcolor: 是否开启伪彩图显示
         :param main_dir: 文件存在路径
         :param gpu: 是否开启 gpu 计算
         :param batch_size: gpu 处理过程中存放图像的批次大小
@@ -100,9 +101,9 @@ class FRETComputer:
         mask = image_mask.clone()
         mask[mask > 0] = 1
         # 计算背景噪声 并且FRET三通道减去对应的背景噪声 添加 mask 屏蔽
-        image_AA, image_AA_template = self.subtract_background_noise(image_AA, mask)
-        image_DD, image_DD_template = self.subtract_background_noise(image_DD, mask)
-        image_DA, image_DA_template = self.subtract_background_noise(image_DA, mask)
+        image_AA, image_AA_template = self.subtract_background_noise(image_AA, mask, current_expose_times=self.expose_times[0])
+        image_DD, image_DD_template = self.subtract_background_noise(image_DD, mask, current_expose_times=self.expose_times[1])
+        image_DA, image_DA_template = self.subtract_background_noise(image_DA, mask, current_expose_times=self.expose_times[2])
         # 添加三通道有效模板 三通道值全部必须为正
         effective_template = image_AA_template * image_DD_template * image_DA_template * mask
         # 计算 Fc 图像
@@ -111,13 +112,12 @@ class FRETComputer:
         print(sub_path, " this set FRET images 有效Fc最小值为", Fc[Fc > 0].min())
         # 计算 Ed 效率以及 Rc 浓度值
         Ed = Fc / (Fc + self.G * image_DD + 1e-7) * effective_template
-        # Rc = (self.k * image_AA) / (image_DD + Fc / self.G)
         # 保存Ed效率图 保存为 TIFF 文件（可以选择其他格式，如 PNG），并设置保存参数以保留浮点数精度
-        tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.squeeze(0).numpy())
+        tifffile.imwrite(os.path.join(self.current_sub_path, 'Ed.tif'), Ed.numpy())
         # 统计单细胞效率情况
         self.count_single_cell_Ed(Ed, image_mask)
         # 绘制伪彩图
-        self.draw_color_map(Ed.squeeze(0).numpy(), "Ed")
+        self.draw_color_map(Ed.numpy(), "Ed")
 
     def count_single_cell_Ed(self, image, mask):
         """
@@ -138,7 +138,7 @@ class FRETComputer:
         df = pd.DataFrame.from_dict(cell_averages, orient='index')
 
         # 将 DataFrame 保存为 CSV 文件
-        df.to_csv(os.path.join(self.current_sub_path, 'cell_Ed_averages.csv'), index_label='index', index=True)
+        df.to_csv(os.path.join(self.current_sub_path, 'site_Ed.csv'), index_label='index', index=True)
 
     def draw_color_map(self, image_np, hist_name):
         """
@@ -156,7 +156,7 @@ class FRETComputer:
         # 清除所有plt的参数
         plt.clf()
 
-    def subtract_background_noise(self, image, mask, only_background=True, background_threshold=1.2):
+    def subtract_background_noise(self, image, mask, only_background=True, background_threshold=1.2, current_expose_times=300):
         """
         1. 利用直方图统计法 计算出对应的背景噪声 同时将图像减去背景噪声
         2. 掩码对应的图像
@@ -188,7 +188,7 @@ class FRETComputer:
         template_tensor[template_tensor > 0] = 1
         template_tensor[template_tensor <= 0] = 0
         # 除以曝光时间
-        noise_removed_tensor = noise_removed_tensor / self.expose_times[0]
+        noise_removed_tensor = noise_removed_tensor / current_expose_times
         print(self.current_sub_path,
               " 降噪图像的最大值为", noise_removed_tensor.max(),
               " 降噪图像最小值为", noise_removed_tensor[noise_removed_tensor > 0].min())
@@ -197,5 +197,6 @@ class FRETComputer:
 
 
 if __name__ == "__main__":
-    fret = FRETComputer()
-    fret.process_fret_computer(r'../example/mit/mit_control_2h')
+    # EGFR 参数Ed提取参数
+    fret = FRETComputer(expose_times=(200, 1000, 500))
+    fret.process_fret_computer(r'../example/egfr/control-3')

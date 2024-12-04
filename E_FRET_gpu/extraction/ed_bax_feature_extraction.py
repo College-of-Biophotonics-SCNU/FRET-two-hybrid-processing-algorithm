@@ -8,8 +8,6 @@ import os.path
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
-import numpy as np
-import matplotlib.pyplot as plt
 from PIL import Image
 from E_FRET_gpu.image.tranformer import custom_to_float32_tensor
 from E_FRET_gpu.tool.draw_plt import draw_compare, draw_single, save_image
@@ -103,7 +101,7 @@ def extraction(experiment):
     mask_tensor = transform(mask)
     original_img_tensor = transform(image)
 
-    # 增加批次参数，升维，为 1 * 1 * 2048 * 2048
+    # 增加批次参数，升维，为 2048 * 2048
     print("加载Ed图像情况", original_img_tensor.shape, original_img_tensor.min(), original_img_tensor.max())
     print("加载mask图像的情况", mask_tensor.shape, mask_tensor.min(), mask_tensor.max())
 
