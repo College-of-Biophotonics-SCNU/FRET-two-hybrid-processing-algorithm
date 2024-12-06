@@ -3,6 +3,7 @@ FRET 效率特征提取流程
 """
 import os
 
+import pandas
 import torch
 
 from E_FRET_gpu.constant import target_files, efficiency_filename, mask_filename
@@ -31,8 +32,10 @@ class EFeatureExtraction:
         self.image_DA = None
         self.image_Ed = None
         self.image_mask = None
+        self.Ed_df = None
         self.have_gpu()
         self.dataloader()
+        self.dir_path = path
 
     def start(self):
         """
@@ -53,9 +56,11 @@ class EFeatureExtraction:
         self.image_DA = return_target_image(self.image_set_path, target_files[2])
         self.image_mask = return_target_image(self.image_set_path, mask_filename)
         self.image_Ed = return_target_image(self.image_set_path, efficiency_filename)
+        # 加载每个位置的 site_Ed.csv
+        self.Ed_df = pandas.read_csv(os.path.join(self.image_set_path, 'site_Ed.csv'))
 
 
-    def target_efficiency_extraction(self, threshold_weight):
+    def target_efficiency_extraction(self):
         """
         靶点效率提取程序
         """
@@ -67,14 +72,11 @@ class EFeatureExtraction:
         """
         pass
 
+    def save_Ed_csv(self):
+        self.Ed_df.to_csv(os.path.join(self.image_set_path, 'site_Ed.csv'), index=False)
+
     @staticmethod
     def have_gpu():
         # 检查是否有可用的 GPU
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("启用设备为: ", device)
         return device
-
-if __name__ == '__main__':
-    image_path = r'C:\Code\python\FRET-two-hybrid-processing-algorithm\example\egfr\AFA-10'
-    model = EFeatureExtraction(image_path)
-    model.start()

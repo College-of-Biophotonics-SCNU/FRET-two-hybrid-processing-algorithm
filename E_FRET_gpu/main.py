@@ -6,7 +6,7 @@ import os.path
 from tool.file_operation import get_path
 from segmentation.cell_segmentation import SegmentationModel
 from tool.update_tif_name import chang_BF_name, check_file_integrity
-root = r"D:\data\20240614"
+root = r"D:\data\20240615"
 
 
 """
@@ -19,15 +19,16 @@ root = r"D:\data\20240614"
 """
 # 遍历整个实验组数据
 well_sub_dirs, _ = get_path(root)
-segmentationModel = SegmentationModel()
+# 该参数对应的MCF7细胞
+MCF7_cell_segmentationModel = SegmentationModel(diameter=150, min_box=100, max_box=250)
 for well_sub_dir in well_sub_dirs:
      # 修改 BF 明场图像名称
      sub_dir_path = os.path.join(root, well_sub_dir)
-     chang_BF_name(sub_dir_path)
+     # chang_BF_name(sub_dir_path)
      # check_file_integrity(sub_dir_path)
      # 实现单细胞分割功能
-     # segmentationModel.root = sub_dir_path
-     # segmentationModel.start()
+     MCF7_cell_segmentationModel.root = sub_dir_path
+     MCF7_cell_segmentationModel.start()
 
 
 """

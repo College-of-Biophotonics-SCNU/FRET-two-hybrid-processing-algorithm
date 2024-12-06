@@ -90,6 +90,7 @@ class FRETComputer:
         """
         利用 pytorch 进行 fret 效率计算操作
         """
+        print("FRET计算处理 ===> ", sub_path)
         self.current_sub_path = sub_path
         # 加载图像为 tensor 并移动到相同设备（假设都在 CPU 或都在 GPU）
         image_AA = load_image_to_tensor(os.path.join(sub_path, target_files[0]))
@@ -131,14 +132,14 @@ class FRETComputer:
             if len(cell_intensities) > 0:
                 average_intensity = cell_intensities.mean().item()
                 cell_averages[cell_id] = {}
-                cell_averages[cell_id]['fret_cell_Ed_averages'] = average_intensity
-                cell_averages[cell_id]['fret_cell_Ed_variance'] = (cell_intensities - average_intensity).pow(2).mean().item()
+                cell_averages[cell_id]['Ed_cell_mean_value'] = average_intensity
+                cell_averages[cell_id]['Ed_cell_variance'] = (cell_intensities - average_intensity).pow(2).mean().item()
 
         # 创建一个 DataFrame
         df = pd.DataFrame.from_dict(cell_averages, orient='index')
 
         # 将 DataFrame 保存为 CSV 文件
-        df.to_csv(os.path.join(self.current_sub_path, 'site_Ed.csv'), index_label='index', index=True)
+        df.to_csv(os.path.join(self.current_sub_path, 'site_Ed.csv'), index_label='ObjectNumber', index=True)
 
     def draw_color_map(self, image_np, hist_name):
         """
@@ -199,4 +200,4 @@ class FRETComputer:
 if __name__ == "__main__":
     # EGFR 参数Ed提取参数
     fret = FRETComputer(expose_times=(200, 1000, 500))
-    fret.process_fret_computer(r'../example/egfr/control-3')
+    fret.process_fret_computer(r'../example/egfr/AFA-10')

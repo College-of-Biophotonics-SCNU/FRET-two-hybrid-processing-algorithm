@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 # 读取CSV文件
-file_path = r'C:\Code\python\FRET-two-hybrid-processing-algorithm\data\csv\20240605_MCF7_BF_A133.csv'
+file_path = r'C:\Code\python\FRET-two-hybrid-processing-algorithm\data\csv\20240610_A549_EGFR-FRET_Protein.csv'
 df = pd.read_csv(file_path)
 
 # 提取特征和标签

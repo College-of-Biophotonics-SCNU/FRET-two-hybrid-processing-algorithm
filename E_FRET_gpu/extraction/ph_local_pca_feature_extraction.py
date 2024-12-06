@@ -15,7 +15,9 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
     def __init__(self, path, n_components=10, save_root=None):
         super().__init__(path)
         # control 组主成分均值
-        self.principal_component_average = {}
+        self.control_principal_component_average = {}
+        # control 组主成分最小值
+        self.control_principal_component_min = {}
         # 主成分数量
         self.n_components = n_components
         # 文件保存路径
@@ -24,6 +26,7 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
             self.save_root = self.directory
         # 划分时间后的单视野统计
         self.divide_time_site_data_pd = None
+
 
     def start(self, need_pretreatment=False, remove_outliers_method=''):
         """
@@ -54,10 +57,7 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
         self.feature_columns = self.feature_columns + principal_components
 
         min_max_scaler = MinMaxScaler()
-        # 创建对象
-        for treatment in self.treatments:
-            # 计算每个 control 不同时间的特征均值
-            self.principal_component_average[treatment] = {}
+
         for hour, group in grouped:
             ########################################
             ## 特征降维 分为划分时间以及不划分时间的情况
@@ -66,27 +66,27 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
             pca_df = pd.DataFrame(features, columns=principal_components, index=group.index)
             # 拼接原始数据和 PCA 结果
             group = pd.concat([group, pca_df], axis=1)
-
+            # 重置对应的group索引
+            group = group.reset_index(drop=True)
             ########################################
             ## control主成分按照不同时间节点均值计算
             ########################################
-            for treatment in self.treatments:
-                # 计算每个 control 不同时间的特征均值
-                self.principal_component_average[treatment][hour] = {}
-                treatment_pd = group[group['Metadata_treatment'] == treatment]
-                for component in range(0, self.n_components):
-                    self.principal_component_average[treatment][hour][component] = treatment_pd[f'Principal_component_{component}'].mean()
+            control_treatment_pd = group[group['Metadata_treatment'] == 'control']
+            self.control_principal_component_average[hour] = {}
+            self.control_principal_component_min[hour] = {}
+            for component in range(0, self.n_components):
+                self.control_principal_component_average[hour][component] = control_treatment_pd[f'Principal_component_{component}'].mean()
+                self.control_principal_component_min[hour][component] = control_treatment_pd[f'Principal_component_{component}'].min()
 
             ########################################
             ## 特征公式计算，同时将计算结果进行保存到pandas的df中
             ########################################
             # 计算每个分组中control数值
-            result_values = self.function(features, weights=weights, control_component=self.principal_component_average['control'][hour])
-            # 每个result_values 需要进行归一化操作
-            result_values_rescaler = min_max_scaler.fit_transform(result_values)
-            # 对于局部PCA的特征需要进行归一化操作
-            group[self.phenotypic_value_name] = result_values_rescaler
+            Y_value, result_values = self.Y_value_function(features, weights=weights, control_component=self.control_principal_component_average[hour], control_index=control_treatment_pd.index)
 
+            # 对于局部PCA的特征需要进行归一化操作
+            group[self.phenotypic_value_name] = result_values
+            group['Y_value'] = Y_value
             result_df = pd.concat([result_df, group], ignore_index=True)
 
         self.data_pd = result_df
@@ -97,6 +97,7 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
         compute_columns = self.feature_columns + [self.phenotypic_value_name]
         # 按 Metadata_site 和 Metadata_hour 分组，并计算每个分组中特征的均值
         self.divide_time_site_data_pd = self.data_pd.groupby(['Metadata_site', 'Metadata_hour', 'Metadata_treatment'])[compute_columns].mean().reset_index()
+        print("单视野数据大小为", self.divide_time_site_data_pd.shape)
 
         ########################################
         ## 输出保存展示最后的结果 根据时间划分的局部PCA算法
@@ -135,6 +136,18 @@ class LocalPCAFeatureExtraction(PFeatureExtraction):
         # 获取每个主成分的方差贡献率
         weights = pca.explained_variance_ratio_
         return features, weights
+
+    def Y_value_function(self, features, weights, control_component=None, control_index=None):
+        # 最后的表型表证值
+        Y_value = np.zeros((features.shape[0], 1))
+        for component in range(0, self.n_components):
+            # 计算每个样本在当前主成分上的差异，并取绝对值
+            diff = weights[component] * features[:, component]
+            # 将差异值累加到 S_value 中
+            Y_value += diff.reshape(-1, 1)
+        control_Y_value = Y_value[control_index].mean()
+        S_value = np.abs(Y_value / control_Y_value - 1)
+        return Y_value, S_value
 
     def function(self, features, weights, control_component=None):
         # 最后的表型表证值
